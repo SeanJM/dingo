@@ -27,41 +27,91 @@ var dingo = {
 
     return { dingoEvent: match[1], data: options };
   },
-  swipe: function (options,dingo) {
-    var rvalue;
-    var lr;
-    var ud;
+  swipeEvent: function (options,dingoEvent) {
+    var rvalue = false,
+        lr,
+        ud;
     if (options.htmlEvent === 'mousedown') {
-      dingoMouse[dingo] = {
+      dingoMouse.swipeEvent[dingoEvent] = {
         x: options.event.pageX,
         y: options.event.pageY
       }
-      rvalue = false;
+      // A Swipe event only triggers during a certain amount of time
+      setTimeout(function () {
+        dingoMouse.swipeEvent[dingoEvent] = false;
+      },300);
     } else if (options.htmlEvent === 'mouseup') {
-      lr     = dingoMouse[dingo].x-options.event.pageX;
-      ud     = dingoMouse[dingo].y-options.event.pageY;
-      rvalue = {
-        originX: dingoMouse[dingo].x,
-        originY: dingoMouse[dingo].y,
-        options: options,
-        dingo: dingo
-      }
-      if (Math.abs(lr) > Math.abs(ud) && Math.abs(lr) > 44) {
-        // Left or Right
-        if (lr > 0) {
-          rvalue.direction = 'swipeleft';
-        } else {
-          rvalue.direction = 'swiperight';
+      if (dingoMouse.swipeEvent[dingoEvent]) {
+        lr     = dingoMouse.swipeEvent[dingoEvent].x-options.event.pageX;
+        ud     = dingoMouse.swipeEvent[dingoEvent].y-options.event.pageY;
+        rvalue = {
+          originX: dingoMouse.swipeEvent[dingoEvent].x,
+          originY: dingoMouse.swipeEvent[dingoEvent].y,
+          options: options,
+          dingo: dingoEvent
         }
-      } else if (Math.abs(ud) > 44) {
-        // Up and Down
-        if (ud > 0) {
-          rvalue.direction = 'swipeup';
+        if (Math.abs(lr) > Math.abs(ud) && Math.abs(lr) > 44) {
+          // Left or Right
+          if (lr > 0) {
+            rvalue.event = 'swipeleft';
+          } else {
+            rvalue.event = 'swiperight';
+          }
+        } else if (Math.abs(ud) > 44) {
+          // Up or Down
+          if (ud > 0) {
+            rvalue.event = 'swipeup';
+          } else {
+            rvalue.event = 'swipedown';
+          }
         } else {
-          rvalue.direction = 'swipedown';
+          rvalue = false;
+        }
+      }
+    }
+    return rvalue;
+  },
+  dragEvent: function (options,dingoEvent) {
+    var rvalue = false,
+        x,
+        y;
+    if (options.htmlEvent === 'mousedown') {
+      dingoMouse.dragEvent[dingoEvent] = {
+        originX: options.event.pageX,
+        originY: options.event.pageY,
+        dragstart: false
+      }
+    } else if (options.htmlEvent === 'mousemove' && dingoMouse.dragEvent[dingoEvent]) {
+      if (Math.abs(dingoMouse.dragEvent[dingoEvent].originX-options.event.pageX) > 10 || Math.abs(dingoMouse.dragEvent[dingoEvent].originY-options.event.pageY) > 10) {
+        rvalue = {
+          originX: dingoMouse.dragEvent[dingoEvent].x,
+          originY: dingoMouse.dragEvent[dingoEvent].y,
+          pageX: options.event.pageX,
+          pageY: options.event.pageY,
+          options: options,
+          dingo: dingoEvent
+        }
+        if (dingoMouse.dragEvent[dingoEvent].dragstart) {
+          rvalue.event = 'drag';
+        } else {
+          rvalue.event = 'dragstart';
+          dingoMouse.dragEvent[dingoEvent].dragstart = true;
         }
       } else {
         rvalue = false;
+      }
+    } else if (options.htmlEvent === 'mouseup') {
+      if (dingoMouse.dragEvent[dingoEvent].dragstart) {
+        rvalue = {
+          originX: dingoMouse.dragEvent[dingoEvent].x,
+          originY: dingoMouse.dragEvent[dingoEvent].y,
+          pageX: x,
+          pageY: y,
+          options: options,
+          dingo: dingoEvent,
+          event: 'dragend'
+        }
+        dingoMouse.dragEvent[dingoEvent] = false;
       }
     }
     return rvalue;
@@ -70,6 +120,7 @@ var dingo = {
     var dingos = options.el.attr('data-dingo').match(/[a-zA-Z0-9_-]+(\s+|)(\{[\s\S]*?\}|)/g);
     var chain  = [];
     var swipe;
+    var drag;
     var dingoEvent;
 
     $.each(dingos,function (i,k) {
@@ -78,18 +129,23 @@ var dingo = {
 
     $.each(chain,function (i,k) {
       dingoEvent = k.dingoEvent;
-      swipe      = dingo.swipe(options,dingoEvent);
+      swipe      = dingo.swipeEvent(options,dingoEvent);
+      drag       = dingo.dragEvent(options,dingoEvent);
 
       if (dingo.is(options.htmlEvent,dingoEvent)) {
         dingo[options.htmlEvent][dingoEvent](k.data);
       }
-      if (swipe && dingo.is(swipe.direction,dingoEvent)) {
-        dingo[swipe.direction][dingoEvent](k.data);
+      if (swipe && dingo.is(swipe.event,dingoEvent)) {
+        dingo[swipe.event][dingoEvent](k.data);
+      }
+      if (drag && dingo.is(drag.event,dingoEvent)) {
+        dingo[drag.event][dingoEvent](k.data);
       }
     });
-
   },
   init: function (el) {
+    dingoMouse.swipeEvent = {};
+    dingoMouse.dragEvent = {};
     dingo.on($('[data-dingo]'));
   },
   on: function (el) {
@@ -98,6 +154,30 @@ var dingo = {
         dingo.exe({htmlEvent:htmlEvent,el:$(this),event: event});
       });
     });
+  }
+}
+
+dingo.dragend = {
+  'swipe-text': function (options) {
+    console.log('drag-end');
+  }
+}
+
+dingo.dragstart = {
+  'swipe-text': function (options) {
+    console.log('drag-start');
+  }
+}
+
+dingo.drag = {
+  'swipe-text': function (options) {
+    console.log('dragging');
+  }
+}
+
+dingo.swipeleft = {
+  'swipe-text': function (options) {
+    console.log('swipeleft');
   }
 }
 
