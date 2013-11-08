@@ -19,13 +19,13 @@ var dingo = {
     return (typeof dingo[k] === 'object' && typeof dingo[k][dingoEvent] === 'function');
   },
   toJs: function (options) {
-    var match = options.dingo.match(/([a-zA-Z0-9_-]+)(?:\s+|)(\{([\s\S]*?)\}|)/);
+    var match = options.dingo.match(/([a-zA-Z0-9_-]+)(?:\s+|)(\{([^}]*)\}|)/);
     var options = {el:options.el,event: options.event,dingo: match[1]};
 
-    if (typeof match[3] === 'string') {
+    if (typeof match[3] === 'string' && match[3].length > 0) {
       $.each(match[3].split(';'),function (i,k) {
-        var _match = k.match(/([a-zA-Z0-9_-]+):([\s\S]*?)$/);
-        _match[2]  = _match[2].replace(/^\s+|$\s+/g,'');
+        var _match = k.match(/([a-zA-Z0-9_-]+):([^}]*)/);
+        _match[2]  = _match[2].replace(/^\s+|\s+$/g,'');
 
         if (_match[2] === 'true') {
           _match[2] = true;
@@ -146,7 +146,6 @@ var dingo = {
       dingoEvent = k.dingoEvent;
       swipe      = dingo.swipeEvent(options,dingoEvent);
       drag       = dingo.dragEvent(options,dingoEvent);
-
 
       if (dingo.is(options.htmlEvent,dingoEvent)) {
         dingo[options.htmlEvent][dingoEvent](k.data);
