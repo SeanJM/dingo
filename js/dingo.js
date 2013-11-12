@@ -1,4 +1,5 @@
-/* MIT License */
+// Dingo Version 1.1
+// MIT License
 // Coded by Sean MacIsaac
 // seanjmacisaac@gmail.com
 
@@ -62,12 +63,12 @@ var dingo = {
   },
   uniMouse: function (event) {
     return {
-      mousedown : 'down',
-      touchstart: 'down',
-      mouseup: 'up',
-      touchend: 'up',
-      mousemove: 'move',
-      touchmove: 'move'
+      mousedown  : 'down',
+      touchstart : 'down',
+      mouseup    : 'up',
+      touchend   : 'up',
+      mousemove  : 'move',
+      touchmove  : 'move'
     }[event];
   },
   swipeEvent: function (options,dingoEvent) {
