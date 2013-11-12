@@ -6,7 +6,7 @@ var dingoMouse = {};
 var dingo = {
   isMobile: function () {
     //return ($(window).width() <= 400);
-    return (navigator.userAgent.match(/iPhone|iPod|iPad|Android|BlackBerry/)) ? true : false;
+    return nullBool(navigator.userAgent.match(/iPhone|iPod|iPad|Android|BlackBerry/));
   },
   htmlEvents: function () {
     if (dingo.isMobile()) {
@@ -49,13 +49,34 @@ var dingo = {
 
     return { dingoEvent: match[1], data: options };
   },
+  getMouse: function (event) {
+    if (dingo.isMobile()) {
+      if (typeof event.changedTouches !== 'undefined') {
+        return event.changedTouches[0];
+      } else if (typeof event.originalEvent !== 'undefined') {
+        return event.originalEvent.changedTouches[0];
+      }
+    } else {
+      return event;
+    }
+  },
+  uniMouse: function (event) {
+    return {
+      mousedown : 'down',
+      touchstart: 'down',
+      mouseup: 'up',
+      touchend: 'up',
+      mousemove: 'move',
+      touchmove: 'move'
+    }[event];
+  },
   swipeEvent: function (options,dingoEvent) {
     var rvalue = false,
-        pageX  = (dingo.isMobile())?options.event.changedTouches[0].pageX:options.event.pageX,
-        pageY  = (dingo.isMobile())?options.event.changedTouches[0].pageY:options.event.pageY,
+        pageX  = dingo.getMouse(options.event).pageX,
+        pageY  = dingo.getMouse(options.event).pageY,
         lr,
         ud;
-    if (options.htmlEvent === 'mousedown') {
+    if (dingo.uniMouse(options.htmlEvent) === 'down') {
       dingoMouse.swipeEvent[dingoEvent] = {
         x: pageX,
         y: pageY
@@ -64,7 +85,7 @@ var dingo = {
       setTimeout(function () {
         dingoMouse.swipeEvent[dingoEvent] = false;
       },300);
-    } else if (options.htmlEvent === 'mouseup') {
+    } else if (dingo.uniMouse(options.htmlEvent) === 'up') {
       if (dingoMouse.swipeEvent[dingoEvent]) {
         rvalue = {
           options : options,
@@ -97,16 +118,16 @@ var dingo = {
   },
   dragEvent: function (options,dingoEvent) {
     var rvalue = false,
-        pageX  = (dingo.isMobile())?options.event.changedTouches[0].pageX:options.event.pageX,
-        pageY  = (dingo.isMobile())?options.event.changedTouches[0].pageY:options.event.pageY;
+        pageX  = dingo.getMouse(options.event).pageX,
+        pageY  = dingo.getMouse(options.event).pageY;
 
-    if (options.htmlEvent === 'mousedown') {
+    if (dingo.uniMouse(options.htmlEvent) === 'down') {
       dingoMouse.dragEvent[dingoEvent] = {
         originX: pageX,
         originY: pageY,
         dragstart: false
       }
-    } else if (options.htmlEvent === 'mousemove' && dingoMouse.dragEvent[dingoEvent]) {
+    } else if (dingo.uniMouse(options.htmlEvent) === 'move' && dingoMouse.dragEvent[dingoEvent]) {
       if (Math.abs(dingoMouse.dragEvent[dingoEvent].originX-pageX) > 10 || Math.abs(dingoMouse.dragEvent[dingoEvent].originY-pageY) > 10) {
         rvalue = {
           originX : dingoMouse.dragEvent[dingoEvent].x,
@@ -125,7 +146,7 @@ var dingo = {
       } else {
         rvalue = false;
       }
-    } else if (options.htmlEvent === 'mouseup') {
+    } else if (dingo.uniMouse(options.htmlEvent) === 'up') {
       if (dingoMouse.dragEvent[dingoEvent].dragstart) {
         rvalue = {
           originX : dingoMouse.dragEvent[dingoEvent].x,
