@@ -10,13 +10,23 @@ var dingo = {
   },
   htmlEvents: function () {
     if (dingo.isMobile()) {
-      return ['touchend','touchmove','touchstart','touchleave','keyup','keydown','keypress','change'];
+      return ['touchend','touchmove','touchstart','touchleave','keyup','keydown','keypress','change','focus'];
     } else {
-      return ['click','mousedown','mouseup','mouseenter','mouseleave','mousemove','keyup','keydown','keypress','change'];
+      return ['click','mousedown','mouseup','mouseenter','mouseleave','mousemove','keyup','keydown','keypress','change','focus'];
     }
   },
   is: function (k,dingoEvent) {
     return (typeof dingo[k] === 'object' && typeof dingo[k][dingoEvent] === 'function');
+  },
+  get: function (el,event) {
+    event      = event||'';
+    var dingos = el.attr('data-dingo').match(/[a-zA-Z0-9_-]+(\s+|)(\{[^}]*?\}|)/g);
+    var chain  = [];
+
+    $.each(dingos,function (i,k) {
+      chain.push(dingo.toJs({dingo: k,el: el,event: event}));
+    });
+    return chain;
   },
   toJs: function (options) {
     var match = options.dingo.match(/([a-zA-Z0-9_-]+)(?:\s+|)(\{([^}]*)\}|)/);
@@ -132,15 +142,10 @@ var dingo = {
     return rvalue;
   },
   exe: function (options) {
-    var dingos = options.el.attr('data-dingo').match(/[a-zA-Z0-9_-]+(\s+|)(\{[\s\S]*?\}|)/g);
-    var chain  = [];
+    var chain  = dingo.get(options.el,options.event);
     var swipe;
     var drag;
     var dingoEvent;
-
-    $.each(dingos,function (i,k) {
-      chain.push(dingo.toJs({dingo: k,el: options.el,event: options.event}));
-    });
 
     $.each(chain,function (i,k) {
       dingoEvent = k.dingoEvent;
