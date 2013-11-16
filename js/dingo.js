@@ -1,19 +1,23 @@
-// Dingo Version 1.1
+// Dingo Version 1.1.2
 // MIT License
 // Coded by Sean MacIsaac
 // seanjmacisaac@gmail.com
 
-var dingoMouse = {};
+var dingoStore = {};
 var dingo = {
   isMobile: function () {
     //return ($(window).width() <= 400);
-    return nullBool(navigator.userAgent.match(/iPhone|iPod|iPad|Android|BlackBerry/));
+    if (navigator.userAgent.match(/iPhone|iPod|iPad|Android|BlackBerry/)) {
+      return true;
+    } else {
+      return false;
+    }
   },
   htmlEvents: function () {
     if (dingo.isMobile()) {
-      return ['touchend','touchmove','touchstart','touchleave','keyup','keydown','keypress','change','focus'];
+      return ['touchend','touchmove','touchstart','touchleave','keyup','keydown','keypress','change','focus','blur'];
     } else {
-      return ['click','mousedown','mouseup','mouseenter','mouseleave','mousemove','keyup','keydown','keypress','change','focus'];
+      return ['click','mousedown','mouseup','mouseenter','mouseleave','mousemove','keyup','keydown','keypress','change','focus','blur'];
     }
   },
   is: function (k,dingoEvent) {
@@ -51,12 +55,19 @@ var dingo = {
     return { dingoEvent: match[1], data: options };
   },
   getMouse: function (event) {
-    if (dingo.isMobile()) {
-      if (typeof event.changedTouches !== 'undefined') {
-        return event.changedTouches[0];
-      } else if (typeof event.originalEvent !== 'undefined') {
-        return event.originalEvent.changedTouches[0];
+    var x = 0,
+        y = 0;
+    function init() {
+      if (typeof event.originalEvent.changedTouches !== 'undefined') {
+        x = event.originalEvent.changedTouches[0].pageX||0;
+        y = event.originalEvent.changedTouches[0].pageY||0;
+      } return {
+        pageX: x,
+        pageY: y
       }
+    }
+    if (dingo.isMobile()) {
+      return init();
     } else {
       return event;
     }
@@ -78,24 +89,24 @@ var dingo = {
         lr,
         ud;
     if (dingo.uniMouse(options.htmlEvent) === 'down') {
-      dingoMouse.swipeEvent[dingoEvent] = {
+      dingoStore.swipeEvent[dingoEvent] = {
         x: pageX,
         y: pageY
       }
       // A Swipe event only triggers during a certain amount of time
       setTimeout(function () {
-        dingoMouse.swipeEvent[dingoEvent] = false;
+        dingoStore.swipeEvent[dingoEvent] = false;
       },300);
     } else if (dingo.uniMouse(options.htmlEvent) === 'up') {
-      if (dingoMouse.swipeEvent[dingoEvent]) {
+      if (dingoStore.swipeEvent[dingoEvent]) {
         rvalue = {
           options : options,
           dingo   : dingoEvent,
-          originX : dingoMouse.swipeEvent[dingoEvent].x,
-          originY : dingoMouse.swipeEvent[dingoEvent].y
+          originX : dingoStore.swipeEvent[dingoEvent].x,
+          originY : dingoStore.swipeEvent[dingoEvent].y
         }
-        lr = dingoMouse.swipeEvent[dingoEvent].x-pageX;
-        ud = dingoMouse.swipeEvent[dingoEvent].y-pageY;
+        lr = dingoStore.swipeEvent[dingoEvent].x-pageX;
+        ud = dingoStore.swipeEvent[dingoEvent].y-pageY;
         if (Math.abs(lr) > Math.abs(ud) && Math.abs(lr) > 44) {
           // Left or Right
           if (lr > 0) {
@@ -123,71 +134,72 @@ var dingo = {
         pageY  = dingo.getMouse(options.event).pageY;
 
     if (dingo.uniMouse(options.htmlEvent) === 'down') {
-      dingoMouse.dragEvent[dingoEvent] = {
+      dingoStore.dragEvent[dingoEvent] = {
         originX: pageX,
         originY: pageY,
         dragstart: false
       }
-    } else if (dingo.uniMouse(options.htmlEvent) === 'move' && dingoMouse.dragEvent[dingoEvent]) {
-      if (Math.abs(dingoMouse.dragEvent[dingoEvent].originX-pageX) > 10 || Math.abs(dingoMouse.dragEvent[dingoEvent].originY-pageY) > 10) {
+    } else if (dingo.uniMouse(options.htmlEvent) === 'move' && dingoStore.dragEvent[dingoEvent]) {
+      if (Math.abs(dingoStore.dragEvent[dingoEvent].originX-pageX) > 10 || Math.abs(dingoStore.dragEvent[dingoEvent].originY-pageY) > 10) {
         rvalue = {
-          originX : dingoMouse.dragEvent[dingoEvent].x,
-          originY : dingoMouse.dragEvent[dingoEvent].y,
+          originX : dingoStore.dragEvent[dingoEvent].x,
+          originY : dingoStore.dragEvent[dingoEvent].y,
           pageX   : pageX,
           pageY   : pageY,
           options : options,
           dingo   : dingoEvent
         }
-        if (dingoMouse.dragEvent[dingoEvent].dragstart) {
+        if (dingoStore.dragEvent[dingoEvent].dragstart) {
           rvalue.event = 'drag';
         } else {
           rvalue.event = 'dragstart';
-          dingoMouse.dragEvent[dingoEvent].dragstart = true;
+          dingoStore.dragEvent[dingoEvent].dragstart = true;
         }
       } else {
         rvalue = false;
       }
     } else if (dingo.uniMouse(options.htmlEvent) === 'up') {
-      if (dingoMouse.dragEvent[dingoEvent].dragstart) {
+      if (dingoStore.dragEvent[dingoEvent].dragstart) {
         rvalue = {
-          originX : dingoMouse.dragEvent[dingoEvent].x,
-          originY : dingoMouse.dragEvent[dingoEvent].y,
+          originX : dingoStore.dragEvent[dingoEvent].x,
+          originY : dingoStore.dragEvent[dingoEvent].y,
           pageX   : pageX,
           pageY   : pageY,
           options : options,
           dingo   : dingoEvent,
           event   : 'dragend'
         }
-        dingoMouse.dragEvent[dingoEvent] = false;
+        dingoStore.dragEvent[dingoEvent] = false;
       }
     }
     return rvalue;
   },
   exe: function (options) {
-    var chain  = dingo.get(options.el,options.event);
-    var swipe;
-    var drag;
-    var dingoEvent;
+    var chain   = dingo.get(options.el,options.event);
+    var tagname = options.el[0].tagName.toLowerCase();
 
-    $.each(chain,function (i,k) {
-      dingoEvent = k.dingoEvent;
-      swipe      = dingo.swipeEvent(options,dingoEvent);
-      drag       = dingo.dragEvent(options,dingoEvent);
+    function mouseEvents(data,dingoEvent) {
+      var swipe = dingo.swipeEvent(options,dingoEvent);
+      var drag  = dingo.dragEvent(options,dingoEvent);
 
-      if (dingo.is(options.htmlEvent,dingoEvent)) {
-        dingo[options.htmlEvent][dingoEvent](k.data);
-      }
       if (swipe && dingo.is(swipe.event,dingoEvent)) {
-        dingo[swipe.event][dingoEvent](k.data);
+        dingo[swipe.event][dingoEvent](data);
       }
       if (drag && dingo.is(drag.event,dingoEvent)) {
-        dingo[drag.event][dingoEvent](k.data);
+        dingo[drag.event][dingoEvent](data);
       }
+      if (dingo.is(options.htmlEvent,dingoEvent)) {
+        dingo[options.htmlEvent][dingoEvent](data);
+      }
+    }
+
+    $.each(chain,function (i,k) {
+      mouseEvents(k.data,k.dingoEvent);
     });
   },
   init: function (el) {
-    dingoMouse.swipeEvent = {};
-    dingoMouse.dragEvent = {};
+    dingoStore.swipeEvent = {};
+    dingoStore.dragEvent = {};
     dingo.on($('[data-dingo]'));
   },
   on: function (el) {
@@ -197,4 +209,4 @@ var dingo = {
       });
     });
   }
-}
+};
