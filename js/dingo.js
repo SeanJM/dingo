@@ -1,4 +1,4 @@
-// Dingo Version 1.1.2
+// Dingo Version 1.1.3
 // MIT License
 // Coded by Sean MacIsaac
 // seanjmacisaac@gmail.com
@@ -39,16 +39,18 @@ var dingo = {
 
     if (typeof match[3] === 'string' && match[3].length > 0) {
       $.each(match[3].split(';'),function (i,k) {
-        var _match = k.match(/([a-zA-Z0-9_-]+):([^}]*)/);
-        _match[2]  = _match[2].replace(/^\s+|\s+$/g,'');
+        if (k.length > 0) {
+          var _match = k.match(/([a-zA-Z0-9_-]+):([^}]*)/);
+          _match[2]  = _match[2].replace(/^\s+|\s+$/g,'');
 
-        if (_match[2] === 'true') {
-          _match[2] = true;
-        } else if (_match[2] === 'false') {
-          _match[2] = false;
+          if (_match[2] === 'true') {
+            _match[2] = true;
+          } else if (_match[2] === 'false') {
+            _match[2] = false;
+          }
+
+          options[_match[1]] = _match[2];
         }
-
-        options[_match[1]] = _match[2];
       });
     }
 
