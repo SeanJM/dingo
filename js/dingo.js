@@ -1,7 +1,7 @@
-// Dingo Version 1.1.8
+// Dingo Version 1.1.8.1
 // MIT License
 // Coded by Sean MacIsaac and created for/existing because of
-// these wonderful companies: Cosarie, Inventory Lab & WizzSolutions
+// these wonderful companies: Cosarie, InventoryLab & WizzSolutions
 // seanjmacisaac@gmail.com
 
 var dingoStore = {};
