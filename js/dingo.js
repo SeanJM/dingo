@@ -1,4 +1,4 @@
-// Dingo Version 1.1.8.1
+// Dingo Version 1.2
 // MIT License
 // Coded by Sean MacIsaac and created for/existing because of
 // these wonderful companies: Cosarie, InventoryLab & WizzSolutions
@@ -16,9 +16,9 @@ var dingo = {
   },
   htmlEvents: function () {
     if (dingo.isMobile()) {
-      return ['touchend','touchmove','touchstart','touchleave','keyup','keydown','keypress','change','focus','blur'];
+      return ['touchend','touchmove','touchstart','touchleave','keyup','keydown','keypress','change','focus','blur','scroll'];
     } else {
-      return ['click','mousedown','mouseup','mouseenter','mouseleave','mousemove','keyup','keydown','keypress','change','focus','blur'];
+      return ['click','mousedown','mouseup','mouseenter','mouseleave','mousemove','keyup','keydown','keypress','change','focus','blur','scroll'];
     }
   },
   is: function (k,dingoEvent) {
@@ -227,6 +227,11 @@ var dingo = {
     dingo.on($('[data-dingo]'));
   },
   on: function (el) {
+    $(window).on('scroll',function (event) {
+      if (dingo.is('scroll','window')) {
+        dingo.scroll['window'](event);
+      }
+    });
     $.each(dingo.htmlEvents(),function (i,htmlEvent) {
       el.off(htmlEvent);
       el.on(htmlEvent,function (event) {
