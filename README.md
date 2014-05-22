@@ -75,12 +75,12 @@ In your JavaScript file, run the initialization command
 * dingo.submit    
 * dingo.swipedown 
 * dingo.swipeleft 
+* dingo.swiperight
 * dingo.swipeup   
 * dingo.touchend  
 * dingo.touchleave
 * dingo.touchmove 
 * dingo.touchstart
-* dingo.swiperight
 
 ### Notes
 
