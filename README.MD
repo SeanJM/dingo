@@ -33,3 +33,6 @@ Simply include the file in your html ensuring jQuery is loaded first
     options.which = 'button'
     options.another = 'one'
 
+### Notes
+
+I created this light weight solution and I use it on everything I work on.
