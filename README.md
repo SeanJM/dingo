@@ -32,9 +32,9 @@ In your JavaScript file, run the initialization command
 
 ### Result on 'options'
     
-    options.el = The active jQuery element
-    options.event = The current event
-    options.which = 'button'
+    options.el      = The active jQuery element
+    options.event   = The current event
+    options.which   = 'button'
     options.another = 'one'
 
 ### Notes
