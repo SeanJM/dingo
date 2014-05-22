@@ -37,6 +37,15 @@ In your JavaScript file, run the initialization command
     options.which   = 'button'
     options.another = 'one'
 
+### Multiple events
+
+    <div class="btn" data-dingo="clickMe clickThere clickHere">Click ME</div>
+
+### Multiple events with arguments
+
+    <div class="btn" data-dingo="clickMe{this:that} clickThere{that:there} clickHere{there:this}">Click ME</div>
+
+
 ### Notes
 
 I created this light weight solution and I use it on everything I work on.
