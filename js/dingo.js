@@ -1,6 +1,6 @@
 //@ sourceURL=dingo.js
 
-// Dingo Version 1.3.11
+// Dingo Version 1.3.12
 // MIT License
 // Coded by Sean MacIsaac and created for/existing because of
 // these wonderful companies: Cosarie, InventoryLab & WizzSolutions
@@ -24,9 +24,9 @@ dingo.isMobile = function () {
 
 dingo.htmlEvents = function () {
   if (dingo.isMobile()) {
-    return ['touchend','touchmove','touchstart','touchleave','keyup','keydown','keypress','change','focus','blur','scroll'];
+    return ['touchend','touchmove','touchstart','touchleave','keyup','keydown','keypress','change','focus','blur','scroll','submit'];
   } else {
-    return ['click','mousedown','mouseup','mouseenter','mouseleave','mousemove','keyup','keydown','keypress','change','focus','blur','scroll'];
+    return ['click','mousedown','mouseup','mouseenter','mouseleave','mousemove','keyup','keydown','keypress','change','focus','blur','scroll','submit'];
   }
 };
 
@@ -305,24 +305,25 @@ dingo.init = function (el) {
 dingo.blur       = {};
 dingo.change     = {};
 dingo.click      = {};
+dingo.drag       = {};
+dingo.dragend    = {};
+dingo.dragstart  = {};
 dingo.focus      = {};
 dingo.keydown    = {};
 dingo.keypress   = {};
 dingo.keyup      = {};
 dingo.mousedown  = {};
-dingo.mousemove  = {};
 dingo.mouseenter = {};
 dingo.mouseleave = {};
+dingo.mousemove  = {};
 dingo.mouseup    = {};
 dingo.scroll     = {};
+dingo.submit     = {};
+dingo.swipedown  = {};
+dingo.swipeleft  = {};
+dingo.swipeup    = {};
 dingo.touchend   = {};
 dingo.touchleave = {};
 dingo.touchmove  = {};
 dingo.touchstart = {};
-dingo.drag       = {};
-dingo.dragstart  = {};
-dingo.dragend    = {};
-dingo.swipeleft  = {};
-dingo.swipeup    = {};
-dingo.swipedown  = {};
 dingo.swiperight = {};
