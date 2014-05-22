@@ -5,6 +5,10 @@
 ## Include it
 Simply include the file in your html ensuring jQuery is loaded first
 
+In your JavaScript file, run the initialization command
+
+    dingo.init();
+
 ## Attaching events to the DOM
 
 ### HTML
