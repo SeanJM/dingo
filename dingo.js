@@ -1,10 +1,27 @@
 //@ sourceURL=dingo.js
 
-// Dingo Version 1.3.12
-// MIT License
-// Coded by Sean MacIsaac and created for/existing because of
-// these wonderful companies: Cosarie, InventoryLab & WizzSolutions
-// seanjmacisaac@gmail.com
+/*
+  Dingo Version 1.3.15
+  MIT License
+  Coded by Sean MacIsaac and created for/existing because of
+  these wonderful companies: Cosarie, InventoryLab & WizzSolutions
+  seanjmacisaac@gmail.com
+
+  * CHANGELOG *
+
+  1.3.14 :  dingo.event.dingoName can now = 'function|array|object'
+            if it is an array, each array member will be executed
+            if it is an object, each object key will be executed
+
+  1.3.15 :  Added method 'set' which is to set the value of dingo's functions
+            Usage: dingo.set('html event','dingo listener',...,function)
+            Eg: dingo.set('click','dingo-click-event',function (options) {});
+            Eg: dingo.set('click','dingo-click-event','sub-event',function (options) {});
+
+            Added ability to have multiple dingos/html-events assigned to one function
+
+*/
+
 
 var dingoStore = {
   dragEvent: {},
@@ -12,6 +29,31 @@ var dingoStore = {
 };
 
 var dingo = {};
+
+dingo.set = function () {
+  var arr = Array.prototype.slice.apply(arguments);
+  // Alow doubles:
+  // dingo.set('click,touchmove,touchstart','dingo',function);
+  function set(check,member,i) {
+    var s = member.split(',');
+    if (s.length > 1) {
+      for (var n=0;n<s.length;n++) {
+        set(check,s[n],i);
+      }
+    } else {
+      if (typeof check[member] === 'undefined') {
+        check[member] = {};
+      }
+      if (i<arr.length-2) {
+        set(check[member],arr[i+1],i+1);
+      } else {
+        // Set to function
+        check[member] = arr[arr.length-1];
+      }
+    }
+  }
+  set (dingo,arr[0],0);
+}
 
 dingo.isMobile = function () {
   //return ($(window).width() <= 400);
@@ -31,10 +73,18 @@ dingo.htmlEvents = function () {
 };
 
 dingo.is = function (k,dingoEvent) {
-  var out = false;
+  var out;
+  var target;
   $.each(k.split(','),function (i,event) {
-    if (typeof dingo[event] === 'object' && typeof dingo[event][dingoEvent] === 'function') {
-      out = true;
+    if (typeof dingo[event] === 'object') {
+      target = dingo[event][dingoEvent];
+      if (typeof target === 'function') {
+        out = 'function';
+      } else if (typeof target === 'object' && typeof target.length === 'number') {
+        out = 'array';
+      } else if (typeof target === 'object') {
+        out = 'object';
+      }
     }
   });
   return out;
@@ -124,7 +174,11 @@ dingo.getMouse = function (event) {
   } else {
     return event;
   }
-};
+}
+
+dingo.getTouches = function (options) {
+  return options.event.originalEvent.changedTouches;
+}
 
 dingo.uniMouse = function (event) {
   return {
@@ -208,13 +262,13 @@ dingo.dragEvent = function (options,dingoEvent) {
   }
 
   function trigger(event) {
-    if (dingo.is(event,dingoStore.dragEvent.dingoEvent)) {
+    if (dingo.is(event,dingoStore.dragEvent.dingoEvent) === 'function') {
       dingo[event][dingoStore.dragEvent.dingoEvent](transferOptions());
     }
   }
 
   function set() {
-    if (dingo.is('drag,dragstart,dragend',dingoEvent)) {
+    if (dingo.is('drag,dragstart,dragend',dingoEvent) === 'function') {
       dingoStore.dragEvent = {
         dingoEvent : dingoEvent,
         el         : options.el,
@@ -250,27 +304,43 @@ dingo.dragEvent = function (options,dingoEvent) {
 
 dingo.exe = function (options) {
   function events(data) {
-    var swipe = dingo.swipeEvent(options,data.dingo);
-
-    if (swipe && dingo.is(swipe.event,data.dingo)) {
+    var swipe   = dingo.swipeEvent(options,data.dingo);
+    var arr;
+    if (swipe && dingo.is(swipe.event,data.dingo) === 'function') {
       dingo[swipe.event][data.dingo](data);
     }
-    if (dingo.is(options.htmlEvent,data.dingo)) {
+    if (dingo.is(options.htmlEvent,data.dingo) === 'function') {
       dingo[options.htmlEvent][data.dingo](data);
+    } else if (dingo.is(options.htmlEvent,data.dingo) === 'array') {
+      arr = dingo[options.htmlEvent][data.dingo];
+      for (var i=0;i<arr.length;i++) {
+        arr[i](data);
+      }
+    } else if (dingo.is(options.htmlEvent,data.dingo) === 'object') {
+      arr = dingo[options.htmlEvent][data.dingo];
+      for (var k in arr) {
+        arr[k](data);
+      }
     }
-
     dingo.dragEvent(options,data.dingo);
   }
 
   function exe() {
-    var chain   = dingo.get(options.el,options.event).chain;
-    var tagname = options.el[0].tagName.toLowerCase();
-
-    $.each(chain,function (i,data) {
-      events(data);
-    });
+    var chain;
+    if (typeof options.el[0].window === 'object') {
+      events({
+        el: options.el,
+        dingo: 'window',
+        htmlEvent: 'scroll'
+      });
+    } else {
+      chain   = dingo.get(options.el,options.event).chain;
+      $.each(chain,function (i,data) {
+        events(data);
+      });
+    }
   };
-  if (typeof options.el.attr('data-dingo') === 'string') {
+  if (typeof options.el[0].window === 'object' || typeof options.el.attr('data-dingo') === 'string') {
     exe();
   }
 };
@@ -284,9 +354,7 @@ dingo.bind = function (el) {
 dingo.on = function (el) {
   $(window).off('scroll');
   $(window).on('scroll',function (event) {
-    if (dingo.is('scroll','window')) {
-      dingo.scroll['window']({event: event,dingo: 'window',el: $(this)});
-    }
+    dingo.exe({htmlEvent:'scroll',el:$(window),event: event});
   });
   $.each(dingo.htmlEvents(),function (i,htmlEvent) {
     el.off(htmlEvent);
@@ -301,29 +369,3 @@ dingo.init = function (el) {
   dingoStore.dragEvent = {};
   dingo.on($('[data-dingo]'));
 };
-
-dingo.blur       = {};
-dingo.change     = {};
-dingo.click      = {};
-dingo.drag       = {};
-dingo.dragend    = {};
-dingo.dragstart  = {};
-dingo.focus      = {};
-dingo.keydown    = {};
-dingo.keypress   = {};
-dingo.keyup      = {};
-dingo.mousedown  = {};
-dingo.mouseenter = {};
-dingo.mouseleave = {};
-dingo.mousemove  = {};
-dingo.mouseup    = {};
-dingo.scroll     = {};
-dingo.submit     = {};
-dingo.swipedown  = {};
-dingo.swipeleft  = {};
-dingo.swipeup    = {};
-dingo.touchend   = {};
-dingo.touchleave = {};
-dingo.touchmove  = {};
-dingo.touchstart = {};
-dingo.swiperight = {};
