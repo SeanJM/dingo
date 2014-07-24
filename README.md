@@ -17,9 +17,9 @@ In your JavaScript file, run the initialization command
 
 ### JavaScript
     
-    dingo.click.clickMe = function (options) {
+    dingo.set('click','clickMe',function (options) {
 
-    }
+    });
 
 ### 'options' passed arguments
     
@@ -45,42 +45,13 @@ In your JavaScript file, run the initialization command
 
 #### JavaScript
 
-    dingo.click['clickMe']    = function (options) {}
-    dingo.click['clickThere'] = function (options) {}
-    dingo.click['clickHere']  = function (options) {}
+    dingo.set('click','clickMe',function (options) {});
+    dingo.set('click','clickThere',function (options) {});
+    dingo.set('click','clickHere',function (options) {});
 
 ### Multiple events with arguments
 
     <div class="btn" data-dingo="clickMe{this:that} clickThere{that:there} clickHere{there:this}">Click ME</div>
-
-
-### Supported events
-
-* dingo.blur      
-* dingo.change    
-* dingo.click     
-* dingo.drag      
-* dingo.dragend   
-* dingo.dragstart 
-* dingo.focus     
-* dingo.keydown   
-* dingo.keypress  
-* dingo.keyup     
-* dingo.mousedown 
-* dingo.mouseenter
-* dingo.mouseleave
-* dingo.mousemove 
-* dingo.mouseup   
-* dingo.scroll    
-* dingo.submit    
-* dingo.swipedown 
-* dingo.swipeleft 
-* dingo.swiperight
-* dingo.swipeup   
-* dingo.touchend  
-* dingo.touchleave
-* dingo.touchmove 
-* dingo.touchstart
 
 ### Notes
 
