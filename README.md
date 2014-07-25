@@ -57,7 +57,7 @@ In your JavaScript file, run the initialization command
 
 #### Sub Dingos
 
-This is for when you want to attach more that one function to a dingo event. For example, you have '<body data-dingo="close"></body>' -- and you want to have a function that closes popup windows, a function that closes menus and a function that does something else and you want to keep them in seperate files for organization.
+This is for when you want to attach more that one function to a dingo event. For example, you have `<body data-dingo="close"></body>` -- and you want to have a function that closes popup windows, a function that closes menus and a function that does something else and you want to keep them in seperate files for organization.
 
     dingo.set('click','close','nav',function () {});
     dingo.set('click','close','menu',function () {});
