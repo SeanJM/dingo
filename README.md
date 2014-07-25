@@ -49,6 +49,12 @@ In your JavaScript file, run the initialization command
     dingo.set('click','clickThere',function (options) {});
     dingo.set('click','clickHere',function (options) {});
 
+##### Multiple Events
+
+    dingo.set('click,touchend','clickMe',function (options) {});
+    dingo.set('click,keyup','clickThere',function (options) {});
+    dingo.set('click,keydown','clickHere',function (options) {});
+
 ### Multiple events with arguments
 
     <div class="btn" data-dingo="clickMe{this:that} clickThere{that:there} clickHere{there:this}">Click ME</div>
