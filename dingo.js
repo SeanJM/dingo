@@ -1,7 +1,7 @@
 //@ sourceURL=dingo.js
 
 /*
-  Dingo Version 1.3.15
+  Dingo Version 1.3.19
   MIT License
   Coded by Sean MacIsaac and created for/existing because of
   these wonderful companies: Cosarie, InventoryLab & WizzSolutions
@@ -19,6 +19,14 @@
             Eg: dingo.set('click','dingo-click-event','sub-event',function (options) {});
 
             Added ability to have multiple dingos/html-events assigned to one function
+
+  1.3.16 :  Added promises
+
+  1.3.17 :  Multiple events per dingo
+
+  1.3.18 :  Added 'trigger';
+
+  1.3.19 :  Merged toJs and the function which passed it a string
 
 */
 
@@ -55,6 +63,10 @@ dingo.set = function () {
   set (dingo,arr[0],0);
 }
 
+dingo.trigger = function (event,target,options) {
+  dingo[event][target](options);
+}
+
 dingo.isMobile = function () {
   //return ($(window).width() <= 400);
   if (navigator.userAgent.match(/iPhone|iPod|iPad|Android|BlackBerry/)) {
@@ -88,7 +100,55 @@ dingo.is = function (k,dingoEvent) {
     }
   });
   return out;
-};
+}
+
+dingo.toJs = function (string) {
+  var pstring = string;
+  var arr     = [];
+  var match;
+  var reg;
+  var obj;
+  function init() {
+    reg = ['([a-zA-Z0-9_-]+)(?:\\s+|)\\{'];
+  }
+  function expand() {
+    reg.push('[^}]*?');
+    reg.push('\}');
+    match = pstring.match(new RegExp(reg.join('')));
+  }
+  function contain(string) {
+    var obj = {};
+    var res;
+    var m;
+    reg.splice(1,0,'(');
+    reg.splice(reg.length-1,0,')');
+    res = string.match(new RegExp(reg.join('')));
+    obj.dingo = res[1];
+    $.each(res[2].split(';'),function (i,k) {
+      obj[k.split(':')[0]] = k.replace(new RegExp(k.split(':')[0] + '(\\s|):'),'');
+    });
+    return obj;
+  }
+  function toDingo(arr) {
+    var a = [];
+    $.each(arr,function (i,k) {
+      a.push({dingo: k});
+    });
+    return a;
+  }
+  init();
+  expand();
+  while (match !== null) {
+    if (match[0].match(/\{/g).length === match[0].match(/\}/g).length) {
+      pstring = $.trim(pstring.replace(match[0],''));
+      arr.push(contain(match[0]));
+      init();
+    }
+    expand();
+  }
+  arr = arr.concat(toDingo(pstring.split(' ')));
+  return arr;
+}
 
 dingo.get = function (el,event) {
   var attr   = el.attr('data-dingo');
@@ -113,49 +173,14 @@ dingo.get = function (el,event) {
     }
   }
   function exe() {
-    var dingos = attr.match(/[a-zA-Z0-9_-]+(\s+|)(\{[^}]*?\}|)/g);
-    var js;
-
-    $.each(dingos,function (i,k) {
-      js       = dingo.toJs(k);
-      js.el    = el;
-      js.event = event;
-      chain.push(js);
+    $.each(dingo.toJs(attr),function (i,k) {
+      k.el    = el;
+      k.event = event;
+      chain.push(k);
     });
     return end();
-  };
-};
-
-dingo.toJs = function (string) {
-  // Matching string{anything} or string
-  var match   = string.match(/([a-zA-Z0-9_-]+)(?:\s+|)(?:\{([^}]*)\}|)/);
-  var contents = match[2];
-  var options = {
-    dingo : match[1]
-  };
-
-  if (typeof contents === 'string' && contents.length > 0) {
-    $.each(contents.split(';'),function (i,k) {
-      if (k.length > 0) {
-        var _match = k.match(/([a-zA-Z0-9_-]+)(?:\:([^}]*)|)/);
-        if (typeof _match[2] === 'undefined') {
-          _match[2] = 'true';
-        }
-        _match[2]  = _match[2].replace(/^\s+|\s+$/g,'');
-
-        if (_match[2] === 'true') {
-          _match[2] = true;
-        } else if (_match[2] === 'false') {
-          _match[2] = false;
-        }
-
-        options[_match[1]] = _match[2];
-      }
-    });
   }
-
-  return options;
-};
+}
 
 dingo.getMouse = function (event) {
   var x = 0,
@@ -352,9 +377,11 @@ dingo.bind = function (el) {
 };
 
 dingo.on = function (el) {
-  $(window).off('scroll');
-  $(window).on('scroll',function (event) {
-    dingo.exe({htmlEvent:'scroll',el:$(window),event: event});
+  $.each(['scroll','resize'],function (i,k) {
+    $(window).off(k);
+    $(window).on(k,function (event) {
+      dingo.exe({htmlEvent:k,el:$(window),event: event});
+    });
   });
   $.each(dingo.htmlEvents(),function (i,htmlEvent) {
     el.off(htmlEvent);
@@ -363,6 +390,17 @@ dingo.on = function (el) {
     });
   });
 };
+
+dingo.promise = function (value,callback) {
+  function exe() {
+    if (typeof value === 'undefined' || value === null) {
+      setTimeout(exe,10);
+    } else {
+      callback();
+    }
+  }
+  exe();
+}
 
 dingo.init = function (el) {
   dingoStore.swipeEvent = {};
