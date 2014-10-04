@@ -1,7 +1,5 @@
-//@ sourceURL=dingo.js
-
 /*
-  Dingo Version 1.3.19
+  Dingo Version 1.3.25
   MIT License
   Coded by Sean MacIsaac and created for/existing because of
   these wonderful companies: Cosarie, InventoryLab & WizzSolutions
@@ -27,6 +25,10 @@
   1.3.18 :  Added 'trigger';
 
   1.3.19 :  Merged toJs and the function which passed it a string
+
+  1.3.20 :  Cleaned up dingo.get
+
+  1.3.25 :  Fixed nesting of Dingos
 
 */
 
@@ -64,7 +66,19 @@ dingo.set = function () {
 }
 
 dingo.trigger = function (event,target,options) {
-  dingo[event][target](options);
+  if ($.isArray(target)) {
+    $.each(target,function (i,k) {
+      if (typeof dingo[event][k.dingo] === 'function') {
+        dingo[event][k.dingo](k)
+      }
+    });
+  } else if (typeof dingo[event][target] === 'function') {
+    dingo[event][target](options);
+  } else if (typeof dingo[event][target] === 'object') {
+    for (var k in dingo[event][target]) {
+      dingo[event][target][k](options);
+    }
+  }
 }
 
 dingo.isMobile = function () {
@@ -78,7 +92,7 @@ dingo.isMobile = function () {
 
 dingo.htmlEvents = function () {
   if (dingo.isMobile()) {
-    return ['touchend','touchmove','touchstart','touchleave','keyup','keydown','keypress','change','focus','blur','scroll','submit'];
+    return ['click','touchend','touchmove','touchstart','touchleave','keyup','keydown','keypress','change','focus','blur','scroll','submit'];
   } else {
     return ['click','mousedown','mouseup','mouseenter','mouseleave','mousemove','keyup','keydown','keypress','change','focus','blur','scroll','submit'];
   }
@@ -108,77 +122,105 @@ dingo.toJs = function (string) {
   var match;
   var reg;
   var obj;
-  function init() {
-    reg = ['([a-zA-Z0-9_-]+)(?:\\s+|)\\{'];
-  }
+  
   function expand() {
     reg.push('[^}]*?');
-    reg.push('\}');
-    match = pstring.match(new RegExp(reg.join('')));
+    reg.push('\\}');
+    return pstring.match(new RegExp(reg.join('')));
   }
+
   function contain(string) {
     var obj = {};
+    var pstring;
+    var arr = [];
+    var newReg = ['[a-zA-Z0-9\_\-]+:[^}]*?;'];
+    var match;
     var res;
     var m;
+
+    function getCurly(string,brace) {
+      if (new RegExp('\\' + brace).test(string)) {
+        return string.match(new RegExp('\\' + brace,'g')).length;
+      } else {
+        return 0;
+      }
+    }
+
+    function fill(array) {
+      $.each(array,function (i,k) {
+        if (k.length) {
+          obj[k.split(':')[0]] = $.trim(k.replace(new RegExp(k.split(':')[0] + '(\\s|):'),'')).replace(/;$/,'');
+        }
+      });
+    }
+
     reg.splice(1,0,'(');
     reg.splice(reg.length-1,0,')');
     res = string.match(new RegExp(reg.join('')));
-    obj.dingo = res[1];
-    $.each(res[2].split(';'),function (i,k) {
-      obj[k.split(':')[0]] = k.replace(new RegExp(k.split(':')[0] + '(\\s|):'),'');
-    });
+    
+    obj.dingo    = res[1];
+    pstring      = res[2];
+    match        = pstring.match(new RegExp(newReg.join('')));
+    // Match string:switch{values} or string:switch
+    while (match !== null) {
+      if (getCurly(match[0],'{') === getCurly(match[0],'}')) {
+        arr.push(match[0]);
+        pstring = pstring.replace(match[0],'');
+        newReg = ['[a-zA-Z0-9\_\-]+:[^}]*?;']
+      }
+      newReg.push('[^}]*?\\}');
+      match = pstring.match(new RegExp(newReg.join('')));
+    }
+    fill(arr.concat(pstring.split(';')));
     return obj;
-  }
+  } // Contain
+
   function toDingo(arr) {
     var a = [];
     $.each(arr,function (i,k) {
-      a.push({dingo: k});
+      if (k.length) {
+        a.push({dingo: k});
+      }
     });
     return a;
   }
-  init();
-  expand();
+  
+  reg   = ['([a-zA-Z0-9_-]+)(?:\\s+|)\\{'];
+  match = expand();
+
   while (match !== null) {
     if (match[0].match(/\{/g).length === match[0].match(/\}/g).length) {
       pstring = $.trim(pstring.replace(match[0],''));
       arr.push(contain(match[0]));
-      init();
+      reg = ['([a-zA-Z0-9_-]+)(?:\\s+|)\\{'];
     }
-    expand();
+    match = expand();
   }
+  
   arr = arr.concat(toDingo(pstring.split(' ')));
+
   return arr;
 }
 
 dingo.get = function (el,event) {
-  var attr   = el.attr('data-dingo');
+  var attr   = $.trim(el.attr('data-dingo'));
   var chain  = [];
-  if (typeof attr === 'string') {
-    return exe();
-  } else {
-    return end();
-  }
-  function end() {
-    return {
-      chain: chain,
-      find: function (string) {
-        var out = false;
-        $.each(chain,function (i,k) {
-          if (k.dingo === string) {
-            out = k;
-          }
-        });
-        return out;
-      }
+  $.each(dingo.toJs(attr),function (i,k) {
+    k.el    = el;
+    k.event = event;
+    chain.push(k);
+  });
+  return {
+    chain: chain,
+    find: function (string) {
+      var out = false;
+      $.each(chain,function (i,k) {
+        if (k.dingo === string) {
+          out = k;
+        }
+      });
+      return out;
     }
-  }
-  function exe() {
-    $.each(dingo.toJs(attr),function (i,k) {
-      k.el    = el;
-      k.event = event;
-      chain.push(k);
-    });
-    return end();
   }
 }
 
@@ -186,15 +228,18 @@ dingo.getMouse = function (event) {
   var x = 0,
       y = 0;
   function init() {
-    if (typeof event.originalEvent.changedTouches !== 'undefined') {
-      x = event.originalEvent.changedTouches[0].pageX||0;
-      y = event.originalEvent.changedTouches[0].pageY||0;
-    } return {
+    if (typeof event.originalEvent !== 'undefined') {
+      if (typeof event.originalEvent.changedTouches !== 'undefined') {
+        x = event.originalEvent.changedTouches[0].pageX||0;
+        y = event.originalEvent.changedTouches[0].pageY||0;
+      }
+    }
+    return {
       pageX: x,
       pageY: y
     }
   }
-  if (dingo.isMobile()) {
+  if (dingo.isMobile() && typeof event !== 'undefined') {
     return init();
   } else {
     return event;
@@ -400,6 +445,31 @@ dingo.promise = function (value,callback) {
     }
   }
   exe();
+}
+
+dingo.browser = function () {
+  var list = ['Firefox','Chrome','Safari','MSIE'];
+  var uA = navigator.userAgent.match(/[a-zA-Z]+(\/|\s)[0-9\.]+/g);
+  var o = {};
+  var t;
+  function isBrowser(string) {
+    for (var i=0;i<list.length;i++) {
+      if (string === list[i]) {
+        return true;
+      }
+    }
+    return false;
+  }
+  for (var i=0;i<uA.length;i++) {
+    t = uA[i].match(/([a-zA-Z]+)(?:\/|\s)([0-9\.]+)/);
+    if (isBrowser(t[1])) {
+      return {
+        name    : t[1],
+        version : t[2]
+      }
+    }
+  }
+  return false;
 }
 
 dingo.init = function (el) {
