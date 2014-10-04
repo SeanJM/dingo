@@ -1,16 +1,15 @@
-//@ sourceURL=formValidate.js
-
 /*
-  Form Validate Version 1.3.0
+  Form Validate Version 1.5.0
   MIT License
   by Sean MacIsaac
 */
 
-var formValidate    = {};
-formValidate.events = {};
-formValidate.custom = {};
+dingo.formValidate = {
+  events: {},
+  custom: {}
+};
 
-formValidate.init = function (form) {
+dingo.formValidate.init = function (form) {
   function camelCase(string) {
     string = string||'';
     string = string.replace(/\(|\)/,'').split(/-|\s/);
@@ -35,9 +34,10 @@ formValidate.init = function (form) {
 
   function getGroup(el) {
     return {
-      container: el.closest('.form-validate-group'),
-      label: $('[for="' + el.attr('id') + '"]'),
-      prompt: el.closest('.form-validate-group').find('.form-validate-prompt')
+      form      : el.closest('.form-validate-container'),
+      container : el.closest('.form-group'),
+      label     : $('[for="' + el.attr('id') + '"]'),
+      prompt    : el.closest('.form-group').find('.form-validate-prompt')
     }
   }
 
@@ -148,15 +148,15 @@ formValidate.init = function (form) {
         return nullBool(string.match(/^[0-9]{4}\/(0[0-9]|1[1-2]|[1-9])\/([0-3][0-9]|0[0-9]|[0-9])$/));
       }
     }
-    if (typeof formValidate.custom[custom] === 'function') {
-      return formValidate.custom[custom](string);
+    if (typeof dingo.formValidate.custom[custom] === 'function') {
+      return dingo.formValidate.custom[custom](string);
     } else {
       return exe[getType(el)]();
     }
   }; // isValid
 
   return {
-    confirm: function (el) {
+    confirm: function (el,state) {
       var _condition,
           _dependency,
           _mirror,
@@ -184,11 +184,15 @@ formValidate.init = function (form) {
       }
 
       function mirror(el) {
-        var mirror = $('#' + dingo.get(el).find('form-validate').mirror);
-        if (mirror.size()) {
-          return [el,mirror];
-        } else {
-          return false;
+        var mirrorId = dingo.get(el).find('form-validate').mirror;
+        var mirror;
+        if (typeof mirrorId === 'string') {
+          mirror = $('#' + mirrorId);
+          if (mirror.size()) {
+            return [el,mirror];
+          } else {
+            return false;
+          }
         }
       }
 
@@ -205,17 +209,42 @@ formValidate.init = function (form) {
       }
 
       function validate(el) {
+        var submitAnim = animate('form-group_submit',{
+          start : '_in',
+          end   : '_out'
+        });
         function exe(el,bool) {
           var group = getGroup(el);
+          if (state === 'submit') {
+            group.form.addClass('form-group_submit');
+          }
           if (bool) {
             el.removeClass('_invalid');
             el.addClass('_valid');
-            group.label.removeClass('_invalid').addClass('_valid');
-            animate(group.prompt).end();
-            group.prompt.removeClass('_active');
+
+            group.label.removeClass('_invalid');
+            group.label.addClass('_valid');
+
+            group.container.removeClass('_invalid');
+            group.container.addClass('_valid');
+            
+            if (group.form.hasClass('form-group_submit')) {
+              submitAnim.end(group.container);
+            }
+
           } else {
+            el.removeClass('_invalid');
             el.addClass('_invalid');
-            group.label.addClass('_invalid').removeClass('_valid');
+
+            group.label.addClass('_invalid');
+            group.label.removeClass('_valid');
+
+            group.container.removeClass('_valid');
+            group.container.addClass('_invalid');
+
+            if (group.form.hasClass('form-group_submit')) {
+              submitAnim.start(group.container);
+            }
           }
         }
         return {
@@ -243,9 +272,22 @@ formValidate.init = function (form) {
         }
       }
 
+      function groupState(el) {
+        var group = getGroup(el);
+        if (el.val().length) {
+          group.container.addClass('form-group_has-content');
+          group.container.removeClass('form-group_no-content');
+        } else {
+          group.container.removeClass('form-group_has-content');
+          group.container.addClass('form-group_no-content');
+        }
+      }
+
       _condition  = condition(el);
       _dependency = dependency(el);
       _mirror     = mirror(el);
+
+      groupState(el);
 
       if (_condition) {
         validate(el).condition();
@@ -276,8 +318,8 @@ formValidate.init = function (form) {
     init: function (base, confirm) {
       if (el.size() > 0) {
         parameters.bool = bool;
-        formValidate.init(el).fufilled();
-        return formValidate.init(el);
+        dingo.formValidate.init(el).fufilled();
+        return dingo.formValidate.init(el);
       } else {
         return false;
       }
@@ -285,36 +327,13 @@ formValidate.init = function (form) {
     is: function () {
       return (form.find('.form-validate').size() < 1);
     },
-    check: function () {
+    check: function (state) {
+      var state = state||'passive';
       var el;
-      formValidate.init(form).get().each(function () {
-        formValidate.init(form).confirm($(this));
+      dingo.formValidate.init(form).get().each(function () {
+        dingo.formValidate.init(form).confirm($(this),state);
       });
       return form.find('._invalid');
-    },
-    submit: function (event) {
-      var out = true;
-      var requiredField = formValidate.init(form).check();
-      if (requiredField.size() > 0) {
-        requiredField.each(function () {
-          var group = getGroup($(this));
-          group.prompt.addClass('_active');
-          group.prompt.css('top',group.container.outerHeight() + 'px');
-          if (typeof animate === 'function') {
-            animate(group.prompt).start();
-          }
-        })
-        if (requiredField.eq(0).closest('[class*="modal"]').size() < 1) {
-          if (typeof animate === 'function') {
-            if (!dingo.isMobile()) {
-              animate(requiredField.eq(0)).scroll();
-            }
-          }
-          requiredField.eq(0).focus();
-        }
-        out = false;
-      }
-      return out;
     },
     setCaptcha: function () {
       var group;
@@ -337,47 +356,86 @@ formValidate.init = function (form) {
         group[0].captcha = answers[getRandomInt(0,answers.length-1)];
         group.find('label').html(group.find('label').html().replace(/{{captcha}}/,group[0].captcha.q));
       }
-      group = form.find('label[for*="captcha"]:eq(0)').closest('.form-validate-group');
+      group = form.find('label[for*="captcha"]:eq(0)').closest('.form-group');
       if (group.size()) {
         setCaptcha(group);
       }
+    },
+    submit: function (event) {
+      var out = true;
+      var requiredField = dingo.formValidate.init(form).check('submit');
+      if (requiredField.size() > 0) {
+        if (requiredField.eq(0).closest('[class*="modal"]').size() < 1) {
+          if (typeof animate === 'function' && !dingo.isMobile()) {
+            animate().scroll(window,requiredField.eq(0).offset().top);
+          }
+          requiredField.eq(0).focus();
+        }
+        out = false;
+      }
+      return out;
     }
   }
 }
 
-formValidate.events.submit = function (options) {
+dingo.formValidate.events.submit = function (options) {
   var container = options.el.closest('.form-validate-container');
-  var submit    = formValidate.init(container).submit();
+  var submit    = dingo.formValidate.init(container).submit();
+  var onsubmit;
   if (!submit) {
     options.event.preventDefault();
+  } else if (typeof options.onsubmit === 'string') {
+    onsubmit = dingo.toJs(options.onsubmit);
+    for (var i = 0;i<onsubmit.length;i++) {
+      onsubmit[i].el    = options.el;
+      onsubmit[i].event = options.event;
+      dingo.trigger('click',onsubmit[i].dingo,onsubmit[i]);
+    }
+  }
+}
+
+dingo.formValidate.nextGroup = function (el) {
+  var groups       = el.closest('.form-validate-container').find('.form-group');
+  var activeGroup  = el.closest('.form-group');
+  var nextGroup;
+  if (el.hasClass('form-group')) {
+    activeGroup = el;
+  }
+  groups.each(function (i,k) {
+    if ($(this)[0] === activeGroup[0]) {
+      nextGroup = groups.eq(i+1);
+    }
+  });
+  if (typeof nextGroup === 'object') {
+    nextGroup.find('input,textarea,select').eq(0).focus();
   }
 }
 
 dingo.set('click','form-validate',function (options) {
   if (options.el.attr('type') === 'checkbox') {
-    formValidate.init(options.el.closest('.form-validate-container')).confirm(options.el);
+    dingo.formValidate.init(options.el.closest('.form-validate-container')).confirm(options.el);
   }
 });
 
 dingo.set('change','form-validate',function (options) {
   if (options.el[0].tagName === 'SELECT') {
-    formValidate.init(options.el.closest('.form-validate-container')).confirm(options.el);
+    dingo.formValidate.init(options.el.closest('.form-validate-container')).confirm(options.el);
   }
 });
 
 dingo.set('keyup','form-validate',function (options) {
-  formValidate.init(options.el.closest('.form-validate-container')).confirm(options.el);
+  dingo.formValidate.init(options.el.closest('.form-validate-container')).confirm(options.el);
 });
 
-dingo.set('click,touchstart','form-validate-submit',formValidate.events.submit);
+dingo.set('click','form-validate-submit',dingo.formValidate.events.submit);
 
 $(function () {
   setTimeout(function () {
     $('.form-validate-container').each(function () {
-      formValidate.init($(this)).check();
+      dingo.formValidate.init($(this)).check();
     });
   },300);
   $('.form-validate-container').each(function () {
-    formValidate.init($(this)).setCaptcha();
+    dingo.formValidate.init($(this)).setCaptcha();
   });
 });
